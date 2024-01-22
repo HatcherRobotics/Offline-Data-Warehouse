@@ -16,8 +16,8 @@ CREATE EXTERNAL TABLE ods_rolling_stock_data_inc(
     lateral_axle_box_acceleration DOUBLE COMMENT '轴箱横向振动加速度',
     centrifugal_acceleration DOUBLE COMMENT '离心加速度',
     lateral_wheel_axle_force DOUBLE COMMENT '轮轴横向力',
-    wheel_rail_contact_force_1 DOUBLE COMMENT '轮轨垂向载荷P1',
-    wheel_rail_contact_force_2 DOUBLE COMMENT '轮轨垂向载荷P2',
+    wheel_rail_contact_load_1 DOUBLE COMMENT '轮轨垂向载荷P1',
+    wheel_rail_contact_load_2 DOUBLE COMMENT '轮轨垂向载荷P2',
     wheel_rail_contact_stress_1 DOUBLE COMMENT '轮轨垂向载荷P1对应接触应力',
     wheel_rail_contact_stress_2 DOUBLE COMMENT '轮轨垂向载荷P2对应接触应力',
     ballast_stress DOUBLE COMMENT '道床应力',
@@ -36,7 +36,7 @@ CREATE EXTERNAL TABLE ods_rolling_stock_info_full(
     line_type TINYINT COMMENT '行别',
     vehicle_no TINYINT COMMENT '车辆编号',
     static_axle_weight DOUBLE COMMENT '静轴重',
-    wheel_rail_contact_force_0 DOUBLE COMMENT '轮轨垂向静载荷',
+    wheel_rail_contact_load_0 DOUBLE COMMENT '轮轨垂向静载荷',
     wheel_rail_contact_stress_0 DOUBLE COMMENT '轮轨静载荷作用下轮轨接触应力'
 )   COMMENT '轨道车辆信息表'
     PARTITIONED BY(`dt` STRING COMMENT '统计日期')

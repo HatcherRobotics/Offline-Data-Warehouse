@@ -7,7 +7,7 @@ CREATE EXTERNAL TABLE dim_rolling_stock_info_full(
     line_type TINYINT COMMENT '行别',
     vehicle_no TINYINT COMMENT '车辆编号',
     static_axle_weight DOUBLE COMMENT '静轴重',
-    wheel_rail_contact_force_0 DOUBLE COMMENT '轮轨垂向静载荷',
+    wheel_rail_contact_load_0 DOUBLE COMMENT '轮轨垂向静载荷',
     wheel_rail_contact_stress_0 DOUBLE COMMENT '轮轨静载荷作用下轮轨接触应力'
 )   COMMENT '轨道车辆信息维度表'
     PARTITIONED BY (`dt` STRING COMMENT '统计日期')
@@ -21,7 +21,7 @@ SELECT id,
        line_type,
        vehicle_no,
        static_axle_weight,
-       wheel_rail_contact_force_0,
+       wheel_rail_contact_load_0,
        wheel_rail_contact_stress_0
 FROM rolling_stock.ods_rolling_stock_info_full o
 WHERE o.dt = '2024-01-24';

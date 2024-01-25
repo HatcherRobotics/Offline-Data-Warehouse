@@ -9,8 +9,8 @@ CREATE EXTERNAL TABLE dwd_wheel_rail_force_inc(
     latitude DOUBLE COMMENT '纬度',
     vertical_wheel_rail_force_left DOUBLE COMMENT '左轮轮轨垂向力',
     lateral_wheel_rail_force_left DOUBLE COMMENT '左轮轮轨横向力',
-    vertical_wheel_force_right DOUBLE COMMENT '右轮轮轨垂向力',
-    lateral_wheel_force_right DOUBLE COMMENT '右轮轮轨横向力',
+    vertical_wheel_rail_force_right DOUBLE COMMENT '右轮轮轨垂向力',
+    lateral_wheel_rail_force_right DOUBLE COMMENT '右轮轮轨横向力',
     time_stamp TIMESTAMP COMMENT '日志采集时间'
 ) COMMENT '轮轨力日志事实表'
 PARTITIONED BY (`dt` STRING COMMENT'统计日期')
@@ -29,8 +29,8 @@ SELECT
     latitude DOUBLE,
     vertical_wheel_rail_force_left DOUBLE,
     lateral_wheel_rail_force_left DOUBLE ,
-    vertical_wheel_force_right DOUBLE ,
-    lateral_wheel_force_right DOUBLE ,
+    vertical_wheel_rail_force_right DOUBLE ,
+    lateral_wheel_rail_force_right DOUBLE ,
     time_stamp TIMESTAMP
 FROM rolling_stock.ods_rolling_stock_data_inc
 WHERE dt<='2024-01-22';
@@ -44,8 +44,8 @@ SELECT
     latitude DOUBLE,
     vertical_wheel_rail_force_left DOUBLE,
     lateral_wheel_rail_force_left DOUBLE ,
-    vertical_wheel_force_right DOUBLE ,
-    lateral_wheel_force_right DOUBLE ,
+    vertical_wheel_rail_force_right DOUBLE ,
+    lateral_wheel_rail_force_right DOUBLE ,
     time_stamp TIMESTAMP
 FROM rolling_stock.ods_rolling_stock_data_inc
 WHERE dt='2024-01-23';

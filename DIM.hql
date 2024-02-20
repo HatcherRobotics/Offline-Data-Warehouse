@@ -1,3 +1,7 @@
+//DIM：基于维度建模理论进行构建，存放维度模型中的维度表，保存一致性维度信息。
+//DIM层的设计依据是维度建模理论，该层存储维度模型的维度表。
+//DIM层的数据存储格式为 orc 列式存储+snappy 压缩。
+//DIM层表名的命名规范为 dim_表名_全量表或者拉链表标识（full/zip）
 //轨道车辆信息维度表
 //1.建表语句
 DROP TABLE IF EXISTS dim_rolling_stock_info_full;
@@ -5,10 +9,7 @@ CREATE EXTERNAL TABLE dim_rolling_stock_info_full(
     id STRING COMMENT '主键',
     line_code STRING COMMENT '线路编号',
     line_type TINYINT COMMENT '行别',
-    vehicle_no TINYINT COMMENT '车辆编号',
-    static_axle_weight DOUBLE COMMENT '静轴重',
-    wheel_rail_contact_load_0 DOUBLE COMMENT '轮轨垂向静载荷',
-    wheel_rail_contact_stress_0 DOUBLE COMMENT '轮轨静载荷作用下轮轨接触应力'
+    vehicle_no TINYINT COMMENT '车辆编号'
 )   COMMENT '轨道车辆信息维度表'
     PARTITIONED BY (`dt` STRING COMMENT '统计日期')
     STORED AS ORC
@@ -19,10 +20,7 @@ INSERT OVERWRITE TABLE dim_rolling_stock_info_full PARTITION (dt = '2024-01-24')
 SELECT id,
        line_code,
        line_type,
-       vehicle_no,
-       static_axle_weight,
-       wheel_rail_contact_load_0,
-       wheel_rail_contact_stress_0
+       vehicle_no
 FROM rolling_stock.ods_rolling_stock_info_full o
 WHERE o.dt = '2024-01-24';
 //日志编码维度表

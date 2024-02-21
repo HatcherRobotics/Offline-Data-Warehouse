@@ -1,4 +1,5 @@
 //车辆运行安全性异常单月统计
+//建表语句
 DROP TABLE IF EXISTS ads_safety_last_month;
 CREATE EXTERNAL TABLE ads_safety_last_month(
     id STRING,
@@ -13,23 +14,79 @@ CREATE EXTERNAL TABLE ads_safety_last_month(
 ) COMMENT '车辆运行安全性异常单月统计'
 ROW FORMAT DELIMITED FIELDS TERMINATED BY '\t'
 LOCATION '/warehouse/rolling_stock/ads/ads_safety_last_month';
+//数据装载
+INSERT OVERWRITE TABLE ads_safety_last_month
+SELECT t1.id,
+       t1.top_longitude,
+       t1.top_latitude,
+       t2.max_derailment_coefficient,
+       t2.max_wheel_load_reduction_rate,
+       t2.max_overturning_coefficient,
+       t2.derailment_coefficient_anomaly_num,
+       t2.wheel_load_reduction_rate_anomaly_num,
+       t2.overturning_coefficient_anomaly_num
+FROM
+(
+SELECT id,
+       top_longitude,
+       top_latitude
+FROM
+(SELECT *,
+       RANK() OVER (PARTITION BY id ORDER BY top_longitude,top_latitude)  AS rk
+       FROM
+(SELECT id,
+        COUNT(longitude) AS top_longitude,
+        COUNT(latitude) AS top_latitude
+FROM rolling_stock.dws_safety_1d
+WHERE SUBSTR(dt,0,7)='2024-01'
+GROUP BY id,
+         longitude,
+         latitude
+ORDER BY id,
+         top_longitude DESC,
+         top_latitude DESC) t3) t4
+WHERE t4.rk = 1
+ORDER BY id)t1
+    JOIN
+(SELECT id,
+       MAX(MAX(derailment_coefficient_left),MAX(derailment_coefficient_right))AS max_derailment_coefficient,
+       MAX(wheel_load_reduction_rate) AS max_wheel_load_reduction_rate,
+       MAX(overturning_coefficient) AS max_overturning_coefficient,
+       SUM(IF(derailment_coefficient_left IS NOT NULL OR derailment_coefficient_right IS NOT NULL,1,0)) AS derailment_coefficient_anomaly_num,
+       SUM(IF(wheel_load_reduction_rate IS NOT NULL,1,0)) AS wheel_load_reduction_rate_anomaly_num,
+       SUM(IF(overturning_coefficient IS NOT NULL,1,0)) AS overturning_coefficient_anomaly_num
+FROM rolling_stock.dws_safety_1d
+WHERE SUBSTR(dt,0,7)='2024-01'
+GROUP BY id
+ORDER BY id) t2
+        ON(t1.id=t2.id);
+
 //车辆运行稳定性异常单月统计
+//建表语句
 DROP TABLE IF EXISTS ads_hunting_last_month;
-CREATE EXTERNAL TABLE ads_safety_last_month(
+CREATE EXTERNAL TABLE ads_hunting_last_month(
     id STRING,
-    top_longitude DOUBLE COMMENT '最应关注位置',
-    top_latitude DOUBLE COMMENT '最应关注位置',
     max_lateral_bogie_acceleration DOUBLE COMMENT '最大异常加速度',
     hunting_anomaly_num INTEGER COMMENT '蛇行运动异常次数'
 ) COMMENT '车辆运行稳定性异常单月统计'
 ROW FORMAT DELIMITED FIELDS TERMINATED BY '\t'
 LOCATION '/warehouse/rolling_stock/ads/ads_hunting_last_month';
+//数据装载
+INSERT OVERWRITE TABLE ads_hunting_last_month
+SELECT
+    id,
+    MAX(lateral_bogie_acceleration) AS max_lateral_bogie_acceleration,
+    COUNT(lateral_bogie_acceleration) AS hunting_anomaly_num
+FROM rolling_stock.dws_hunting_1d
+WHERE SUBSTR(dt,0,7)='2024-01'
+GROUP BY id
+ORDER BY id;
+
 //车辆运行平稳性异常单月统计
+//建表语句
 DROP TABLE IF EXISTS ads_stationarity_last_month;
 CREATE EXTERNAL TABLE ads_stationarity_last_month(
     id STRING,
-    top_longitude DOUBLE COMMENT '最应关注位置',
-    top_latitude DOUBLE COMMENT '最应关注位置',
     max_vertical_vehicle_acceleration DOUBLE COMMENT '最大异常车体垂向加速度',
     max_lateral_vehicle_acceleration DOUBLE COMMENT '最大异常车体横向加速度',
     max_centrifugal_acceleration DOUBLE COMMENT '最大异常离心加速度',
@@ -39,12 +96,25 @@ CREATE EXTERNAL TABLE ads_stationarity_last_month(
 ) COMMENT '车辆运行平稳性异常单月统计'
 ROW FORMAT DELIMITED FIELDS TERMINATED BY '\t'
 LOCATION '/warehouse/rolling_stock/ads/ads_stationarity_last_month';
+//数据装载
+INSERT OVERWRITE TABLE ads_stationarity_last_month
+SELECT id,
+       MAX(vertical_vehicle_acceleration) AS max_vertical_vehicle_acceleration,
+       MAX(lateral_vehicle_acceleration) AS max_lateral_vehicle_acceleration,
+       MAX(centrifugal_acceleration) AS max_centrifugal_acceleration,
+       SUM(IF(vertical_vehicle_acceleration IS NOT NULL,1,0)) AS vertical_vehicle_acceleration_anomaly_num,
+       SUM(IF(lateral_vehicle_acceleration IS NOT NULL,1,0)) AS lateral_vehicle_acceleration_anomaly_num,
+       SUM(IF(centrifugal_acceleration IS NOT NULL,1,0)) AS centrifugal_acceleration_anomaly_num
+FROM rolling_stock.dws_stationarity_1d
+WHERE SUBSTR(dt,0,7)='2024-01'
+GROUP BY id
+ORDER BY id;
+
 //车辆与轨道相互作用异常单月统计
+//建表语句
 DROP TABLE IF EXISTS ads_rail_dynamic_interaction_last_month;
 CREATE EXTERNAL TABLE ads_rail_dynamic_interaction_last_month(
     id STRING,
-    top_longitude DOUBLE COMMENT '最应关注位置',
-    top_latitude DOUBLE COMMENT '最应关注位置',
     max_vertical_wheel_rail_force_left DOUBLE COMMENT '最大异常左轮轮轨垂向力',
     max_vertical_wheel_rail_force_right DOUBLE COMMENT '最大异常右轮轮轨垂向力',
     max_lateral_wheel_rail_force_left DOUBLE COMMENT '最大异常左轮轮轨横向力',
@@ -66,3 +136,30 @@ CREATE EXTERNAL TABLE ads_rail_dynamic_interaction_last_month(
 )COMMENT '车辆与轨道相互作用异常单月统计'
 ROW FORMAT DELIMITED FIELDS TERMINATED BY '\t'
 LOCATION '/warehouse/rolling_stock/ads/ads_rail_dynamic_interaction_last_month';
+//数据装载
+INSERT OVERWRITE TABLE ads_rail_dynamic_interaction_last_month
+SELECT id,
+       MAX(vertical_wheel_rail_force_left) AS max_vertical_wheel_rail_force_left,
+       MAX(vertical_wheel_rail_force_right) AS max_vertical_wheel_rail_force_right,
+       MAX(lateral_wheel_rail_force_left) AS max_lateral_wheel_rail_force_left,
+       MAX(lateral_wheel_rail_force_right) AS max_lateral_wheel_rail_force_right,
+       MAX(lateral_stability_coefficient) AS max_lateral_stability_coefficient,
+       MAX(wheel_rail_contact_stress_1) AS max_wheel_rail_contact_stress_1,
+       MAX(wheel_rail_contact_stress_2) AS max_wheel_rail_contact_stress_2,
+       MAX(ballast_stress) AS max_ballast_stress,
+       MAX(roadbed_stress)AS max_roadbed_stress,
+       SUM(IF(vertical_wheel_rail_force_left IS NOT NULL,1,0)) AS vertical_wheel_rail_force_left_anomaly_num,
+       SUM(IF(vertical_wheel_rail_force_right IS NOT NULL,1,0)) AS vertical_wheel_rail_force_right_anomaly_num,
+       SUM(IF(lateral_wheel_rail_force_left IS NOT NULL,1,0)) AS lateral_wheel_rail_force_left_anomaly_num,
+       SUM(IF(lateral_wheel_rail_force_right IS NOT NULL,1,0)) AS lateral_wheel_rail_force_right_anomaly_num,
+       SUM(IF(lateral_stability_coefficient IS NOT NULL,1,0)) AS lateral_stability_coefficient_anomaly_num,
+       SUM(IF(wheel_rail_contact_stress_1 IS NOT NULL,1,0)) AS wheel_rail_contact_stress_1_anomaly_num,
+       SUM(IF(wheel_rail_contact_stress_2 IS NOT NULL,1,0)) AS wheel_rail_contact_stress_2_anomaly_num,
+       SUM(IF(ballast_stress IS NOT NULL,1,0)) AS ballast_stress_anomaly_num,
+       SUM(IF(roadbed_stress IS NOT NULL,1,0)) AS roadbed_stress_anomaly_num
+FROM rolling_stock.dws_rail_dynamic_interaction_1d
+WHERE SUBSTR(dt,0,7)='2024-01'
+GROUP BY id
+ORDER BY id;
+
+

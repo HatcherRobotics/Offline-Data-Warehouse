@@ -25,6 +25,7 @@ TBLPROPERTIES ('orc.compress' = 'snappy');
 //数据装载
 //首日装载
 SET hive.exec.dynamic.partition.mode=nonstrict;
+
 INSERT OVERWRITE TABLE rolling_stock.dwd_safety_inc PARTITION (dt)
 SELECT
     id,
@@ -40,8 +41,9 @@ SELECT
     lateral_wheel_rail_force_right/vertical_wheel_rail_force_right AS derailment_coefficient_right,
     LEAST(vertical_wheel_rail_force_left/wheel_rail_contact_stress_0,vertical_wheel_rail_force_right/wheel_rail_contact_stress_0) AS wheel_load_reduction_rate,
     ABS(vertical_wheel_rail_force_left-vertical_wheel_rail_force_right)/(vertical_wheel_rail_force_left+vertical_wheel_rail_force_right) AS overturning_coefficient,
-    time_stamp
-FROM rolling_stock.ods_rolling_stock_data_inc
+    time_stamp,
+    `dt`
+FROM ods_rolling_stock_data_inc
 WHERE dt<='2024-01-22';
 //每日装载
 INSERT OVERWRITE TABLE rolling_stock.dwd_safety_inc PARTITION (dt='2024-01-23')
@@ -90,7 +92,8 @@ SELECT
     longitude,
     latitude,
     lateral_bogie_acceleration,
-    time_stamp
+    time_stamp,
+    `dt`
 FROM rolling_stock.ods_rolling_stock_data_inc
 WHERE dt<='2024-01-22';
 //每日装载
@@ -137,7 +140,8 @@ SELECT
     vertical_vehicle_acceleration,
     lateral_vehicle_acceleration,
     centrifugal_acceleration,
-    time_stamp
+    time_stamp,
+    `dt`
 FROM rolling_stock.ods_rolling_stock_data_inc
 WHERE dt<='2024-01-22';
 //每日装载
@@ -202,7 +206,8 @@ SELECT
     wheel_rail_contact_stress_2,
     ballast_stress,
     roadbed_stress,
-    time_stamp
+    time_stamp,
+    `dt`
 FROM rolling_stock.ods_rolling_stock_data_inc
 WHERE dt<='2024-01-22';
 //每日装载

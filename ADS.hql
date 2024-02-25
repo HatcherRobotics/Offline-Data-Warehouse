@@ -3,8 +3,6 @@
 DROP TABLE IF EXISTS ads_safety_last_month;
 CREATE EXTERNAL TABLE ads_safety_last_month(
     id STRING,
-    top_longitude DOUBLE COMMENT '最应关注位置',
-    top_latitude DOUBLE COMMENT '最应关注位置',
     max_derailment_coefficient DOUBLE COMMENT '最大异常脱轨系数',
     max_wheel_load_reduction_rate DOUBLE COMMENT '最大异常轮重减载率',
     max_overturning_coefficient DOUBLE COMMENT '最大异常倾覆系数',
@@ -16,40 +14,8 @@ ROW FORMAT DELIMITED FIELDS TERMINATED BY '\t'
 LOCATION '/warehouse/rolling_stock/ads/ads_safety_last_month';
 //数据装载
 INSERT OVERWRITE TABLE ads_safety_last_month
-SELECT t1.id,
-       t1.top_longitude,
-       t1.top_latitude,
-       t2.max_derailment_coefficient,
-       t2.max_wheel_load_reduction_rate,
-       t2.max_overturning_coefficient,
-       t2.derailment_coefficient_anomaly_num,
-       t2.wheel_load_reduction_rate_anomaly_num,
-       t2.overturning_coefficient_anomaly_num
-FROM
-(
 SELECT id,
-       top_longitude,
-       top_latitude
-FROM
-(SELECT *,
-       RANK() OVER (PARTITION BY id ORDER BY top_longitude,top_latitude)  AS rk
-       FROM
-(SELECT id,
-        COUNT(longitude) AS top_longitude,
-        COUNT(latitude) AS top_latitude
-FROM rolling_stock.dws_safety_1d
-WHERE SUBSTR(dt,0,7)='2024-01'
-GROUP BY id,
-         longitude,
-         latitude
-ORDER BY id,
-         top_longitude DESC,
-         top_latitude DESC) t3) t4
-WHERE t4.rk = 1
-ORDER BY id)t1
-    JOIN
-(SELECT id,
-       MAX(MAX(derailment_coefficient_left),MAX(derailment_coefficient_right))AS max_derailment_coefficient,
+       MAX(GREATEST(derailment_coefficient_left,derailment_coefficient_right))AS max_derailment_coefficient,
        MAX(wheel_load_reduction_rate) AS max_wheel_load_reduction_rate,
        MAX(overturning_coefficient) AS max_overturning_coefficient,
        SUM(IF(derailment_coefficient_left IS NOT NULL OR derailment_coefficient_right IS NOT NULL,1,0)) AS derailment_coefficient_anomaly_num,
@@ -58,8 +24,7 @@ ORDER BY id)t1
 FROM rolling_stock.dws_safety_1d
 WHERE SUBSTR(dt,0,7)='2024-01'
 GROUP BY id
-ORDER BY id) t2
-        ON(t1.id=t2.id);
+ORDER BY id;
 
 //车辆运行稳定性异常单月统计
 //建表语句

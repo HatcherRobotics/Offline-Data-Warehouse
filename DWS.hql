@@ -24,6 +24,7 @@ LOCATION '/warehouse/rolling_stock/dws/dws_safety_1d'
 TBLPROPERTIES ('orc.compress' = 'snappy');
 //数据装载
 //首日装载
+SET hive.exec.dynamic.partition.mode=nonstrict;
 INSERT OVERWRITE TABLE dws_safety_1d PARTITION (dt)
 SELECT
     id,
@@ -46,9 +47,7 @@ WHERE dt<='2024-01-22'
 AND (ABS(derailment_coefficient_left)>0.8
     OR ABS(derailment_coefficient_right)>0.8
     OR wheel_load_reduction_rate>0.6
-    OR overturning_coefficient>0.8)
-GROUP BY id
-ORDER BY id,position_along_track;
+    OR overturning_coefficient>0.8);
 //每日装载
 INSERT OVERWRITE TABLE dws_safety_1d PARTITION (dt='2024-01-23')
 SELECT
@@ -71,9 +70,7 @@ WHERE dt='2024-01-23'
 AND (ABS(derailment_coefficient_left)>0.8
     OR ABS(derailment_coefficient_right)>0.8
     OR wheel_load_reduction_rate>0.6
-    OR overturning_coefficient>0.8)
-GROUP BY id
-ORDER BY id,position_along_track;
+    OR overturning_coefficient>0.8);
 //车辆运行稳定性异常单日累计表
 //蛇行运动
 //建表语句
@@ -110,18 +107,16 @@ FROM
     longitude,
     latitude,
     lateral_bogie_acceleration,
-    LAG(lateral_bogie_acceleration,1) lba1,
-    LAG(lateral_bogie_acceleration,2) lba2,
-    LAG(lateral_bogie_acceleration,3) lba3,
-    LAG(lateral_bogie_acceleration,4) lba4,
-    LAG(lateral_bogie_acceleration,5) lba5,
+    LAG(lateral_bogie_acceleration,1) OVER (PARTITION BY id ORDER BY time_stamp) lba1,
+    LAG(lateral_bogie_acceleration,2) OVER (PARTITION BY id ORDER BY time_stamp)lba2,
+    LAG(lateral_bogie_acceleration,3) OVER (PARTITION BY id ORDER BY time_stamp)lba3,
+    LAG(lateral_bogie_acceleration,4) OVER (PARTITION BY id ORDER BY time_stamp)lba4,
+    LAG(lateral_bogie_acceleration,5) OVER (PARTITION BY id ORDER BY time_stamp)lba5,
     time_stamp,
     dt
 FROM rolling_stock.dwd_hunting_inc) t1
 WHERE t1.lba1>8 AND t1.lba2>8 AND t1.lba3>8 AND t1.lba4>8 AND t1.lba5>8 AND t1.lateral_bogie_acceleration>8
-        AND dt<='2024-01-22'
-GROUP BY id
-ORDER BY id,position_along_track;
+        AND dt<='2024-01-22';
 //每日装载
 INSERT OVERWRITE TABLE dws_hunting_1d PARTITION (dt='2024-01-23')
 SELECT id,
@@ -139,17 +134,16 @@ FROM
     longitude,
     latitude,
     lateral_bogie_acceleration,
-    LAG(lateral_bogie_acceleration,1) lba1,
-    LAG(lateral_bogie_acceleration,2) lba2,
-    LAG(lateral_bogie_acceleration,3) lba3,
-    LAG(lateral_bogie_acceleration,4) lba4,
-    LAG(lateral_bogie_acceleration,5) lba5,
-    time_stamp
+    LAG(lateral_bogie_acceleration,1)OVER (PARTITION BY id ORDER BY time_stamp) lba1,
+    LAG(lateral_bogie_acceleration,2) OVER (PARTITION BY id ORDER BY time_stamp) lba2,
+    LAG(lateral_bogie_acceleration,3) OVER (PARTITION BY id ORDER BY time_stamp) lba3,
+    LAG(lateral_bogie_acceleration,4) OVER (PARTITION BY id ORDER BY time_stamp) lba4,
+    LAG(lateral_bogie_acceleration,5) OVER (PARTITION BY id ORDER BY time_stamp) lba5,
+    time_stamp,
+    dt
 FROM rolling_stock.dwd_hunting_inc) t1
 WHERE t1.lba1>8 AND t1.lba2>8 AND t1.lba3>8 AND t1.lba4>8 AND t1.lba5>8 AND t1.lateral_bogie_acceleration>8
-        AND dt='2024-01-23'
-GROUP BY id
-ORDER BY id,position_along_track;
+        AND dt='2024-01-23';
 //车辆运行平稳性异常单日累计表
 //车体振动加速度 通过曲线舒适度
 //建表语句
@@ -187,9 +181,7 @@ FROM rolling_stock.dwd_stationarity_inc
 WHERE  dt<='2024-01-22' AND
     (vertical_vehicle_acceleration>0.00215*velocity+0.16
    OR lateral_vehicle_acceleration>0.00135*velocity+0.18
-   OR centrifugal_acceleration>0.784)
-GROUP BY id
-ORDER BY id,position_along_track;
+   OR centrifugal_acceleration>0.784);
 //每日装载
 INSERT OVERWRITE TABLE dws_stationarity_1d PARTITION (dt='2024-01-23')
 SELECT
@@ -206,9 +198,7 @@ FROM rolling_stock.dwd_stationarity_inc
 WHERE  dt='2024-01-23' AND
     (vertical_vehicle_acceleration>0.00215*velocity+0.16
    OR lateral_vehicle_acceleration>0.00135*velocity+0.18
-   OR centrifugal_acceleration>0.784)
-GROUP BY id
-ORDER BY id,position_along_track;
+   OR centrifugal_acceleration>0.784);
 //车辆与轨道相互作用异常单日累计表
 //轮轨垂向力 轮轨横向力 轮轴横向力 线路横向稳定性系数 轮轨接触应力 道床应力 路基应力
 //建表语句
@@ -269,9 +259,7 @@ WHERE dt<='2024-01-22' AND
       OR wheel_rail_contact_stress_1>1600
       OR wheel_rail_contact_stress_2>1600
       OR ballast_stress>0.5
-      OR roadbed_stress>0.15)
-GROUP BY id
-ORDER BY id,position_along_track;
+      OR roadbed_stress>0.15);
 //每日装载
 INSERT OVERWRITE TABLE dws_rail_dynamic_interaction_1d PARTITION (dt='2024-01-23')
 SELECT
@@ -303,6 +291,4 @@ WHERE dt='2024-01-22' AND
       OR wheel_rail_contact_stress_1>1600
       OR wheel_rail_contact_stress_2>1600
       OR ballast_stress>0.5
-      OR roadbed_stress>0.15)
-GROUP BY id
-ORDER BY id,position_along_track;
+      OR roadbed_stress>0.15);

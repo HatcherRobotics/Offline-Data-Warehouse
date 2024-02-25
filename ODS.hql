@@ -6,8 +6,8 @@
 //ODS层的表结构设计依托于从业务系统同步过来的数据结构
 //ODS 层要保存全部历史数据，故其压缩格式应选择压缩比较高的，此处选择 gzip
 //ODS 层表名的命名规范为：ods_表名_单分区增量全量标识（inc/full）
-
 //轨道车辆日志表（增量日志表）
+CREATE DATABASE rolling_stock;
 CREATE EXTERNAL TABLE ods_rolling_stock_data_inc(
     id STRING,
     position_along_track DOUBLE COMMENT '里程',
@@ -40,7 +40,6 @@ CREATE EXTERNAL TABLE ods_rolling_stock_data_inc(
     PARTITIONED BY (`dt` STRING COMMENT '统计日期')
     ROW FORMAT SERDE 'org.apache.hadoop.hive.serde2.JsonSerDe'
     LOCATION '/warehouse/rolling_stock/ods/ods_rolling_stock_data_inc';
-
 
 //轨道车辆信息表（全量表）
 DROP TABLE IF EXISTS ods_rolling_stock_info_full;

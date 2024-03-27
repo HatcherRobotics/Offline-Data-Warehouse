@@ -1,0 +1,74 @@
+{
+  "job": {
+    "content": [
+      {
+        "reader": {
+          "name": "mysqlreader",
+          "parameter": {
+            "column": [
+              "id",
+              "line_code",
+              "line_type",
+              "vehicle_no"
+            ],
+            "connection": [
+              {
+                "jdbcUrl": [
+                  "jdbc:mysql://hadoop102:3306/rolling_stock_data"
+                ],
+                "table": [
+                  "rolling_stock_info"
+                ]
+              }
+            ],
+            "password": "000000",
+            "splitPk": "",
+            "username": "root"
+          }
+        },
+        "writer": {
+          "name": "hdfswriter",
+          "parameter": {
+            "column": [
+              {
+                "name": "id",
+                "type": "string"
+              },
+              {
+                "name": "line_code",
+                "type": "string"
+              },
+              {
+                "name": "line_type",
+                "type": "string"
+              },
+              {
+                "name": "vehicle_no",
+                "type": "string"
+              }
+            ],
+            "hadoopConfig": {
+              "dfs.nameservices": "mycluster",
+              "dfs.namenode.rpc-address.mycluster.nn2": "hadoop103:8020",
+              "dfs.namenode.rpc-address.mycluster.nn1": "hadoop102:8020",
+              "dfs.client.failover.proxy.provider.mycluster": "org.apache.hadoop.hdfs.server.namenode.ha.ConfiguredFailoverProxyProvider",
+              "dfs.ha.namenodes.mycluster": "nn1,nn2"
+            },
+            "compress": "gzip",
+            "defaultFS": "hdfs://mycluster",
+            "fieldDelimiter": "\t",
+            "fileName": "rolling_stock_info",
+            "fileType": "text",
+            "path": "${targetdir}",
+            "writeMode": "append"
+          }
+        }
+      }
+    ],
+    "setting": {
+      "speed": {
+        "channel": 1
+      }
+    }
+  }
+}
